@@ -1,54 +1,77 @@
 require "http/server"
 
 module Router
-    
-    def self.indexController(context : HTTP::Server::Context) : Bool
-        if context.request.path == "/"
-            context.response.content_type = "text/plain"
-            context.response.print "Index"
-            return true
-        end
-        return false
-    end
-    
-    def self.aboutController(context : HTTP::Server::Context) : Bool
-        if context.request.path == "/about"
-            context.response.content_type = "text/plain"
-            context.response.print "About"
-            return true
-        end
-        return false
-    end
-    
-    def self.apiRouter(context : HTTP::Server::Context) : Bool
-        if /^\/api\/?/ =~ context.request.path
-            context.response.content_type = "text/plain"
-            context.response.print "API"
-            return true
-        end
-        return false
-    end
-    
-    def self.route(context)
-        routes : Array(Proc(HTTP::Server::Context, Bool))
-        routes = [
-            ->indexController(HTTP::Server::Context),
-            ->aboutController(HTTP::Server::Context),
-            ->apiRouter(HTTP::Server::Context)
-        ]
+    class Route
+        @path : String | Regex
+        @verb : String
+        #@handler
+        @pathMatcher : Proc(HTTP::Server::Context, Bool)
         
-        routed = routes.reduce(false) do |matched, route|
-            matched || route.call(context)
+        def initialize(path, verb, handler) 
+            @path = path
+            @verb = verb
+            #@handler = ->handler
+            
+            if path.is_a?(String)
+                @pathMatcher = ->(context : HTTP::Server::Context) {
+                    if @path == context.request.path 
+                        return true
+                    else
+                        return false
+                    end
+                }
+            else
+                @pathMatcher = ->(context : HTTP::Server::Context) {
+                    if @path =~ context.request.path 
+                        return true
+                    else
+                        return false
+                    end
+                }
+            end
         end
         
-        puts routed
+        def isPath?(context)
+            @pathMatcher.call(context) && @verb == context.request.method
+        end
         
-        if !routed
+        def handle(context)
+            #@handler.call(context)
             context.response.content_type = "text/plain"
-            context.response.print "404"
+            context.response.print @verb
+        end
+        
+        def checkPathAndHandle(context)
+            if isPath?(context)
+                handle(context)
+                return true
+            else
+                return false
+            end
+        end
+    end
+
+    class Router
+        @routes : Array(Route)
+        
+        def initialize 
+            @routes = [
+                Route.new("/", "GET", ""),
+                Route.new("/about", "GET", ""),
+                Route.new(/^\/api\/?/, "GET", "")
+            ]
+        end
+        
+        def route(context)
+            routed = @routes.reduce(false) do |matched, route|
+                matched || route.checkPathAndHandle(context)
+            end
+            
+            if !routed
+                context.response.content_type = "text/plain"
+                context.response.print "404"
+            end
         end
         
     end
-    
-    
 end
