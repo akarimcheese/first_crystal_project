@@ -3,13 +3,13 @@ require "http/server"
 module Router
     class Route
         @path : String | Regex
-        @verb : String
+        @verbs : Array(String)
         #@handler
         @pathMatcher : Proc(HTTP::Server::Context, Bool)
         
-        def initialize(path, verb, handler) 
+        def initialize(path, verbs, handler) 
             @path = path
-            @verb = verb
+            @verbs = verbs
             #@handler = ->handler
             
             if path.is_a?(String)
@@ -32,13 +32,13 @@ module Router
         end
         
         def isPath?(context)
-            @pathMatcher.call(context) && @verb == context.request.method
+            @pathMatcher.call(context) && @verbs.includes?(context.request.method)
         end
         
         def handle(context)
             #@handler.call(context)
-            context.response.content_type = "text/plain"
-            context.response.print @verb
+            context.response.content_type = "text/html"
+            context.response.print "ok"
         end
         
         def checkPathAndHandle(context)
@@ -56,9 +56,9 @@ module Router
         
         def initialize 
             @routes = [
-                Route.new("/", "GET", ""),
-                Route.new("/about", "GET", ""),
-                Route.new(/^\/api\/?/, "GET", "")
+                Route.new("/", ["GET"], ""),
+                Route.new("/about", ["GET"], ""),
+                Route.new(/^\/api\/?/, ["GET"], "")
             ]
         end
         
@@ -68,7 +68,7 @@ module Router
             end
             
             if !routed
-                context.response.content_type = "text/plain"
+                context.response.content_type = "text/html"
                 context.response.print "404"
             end
         end
