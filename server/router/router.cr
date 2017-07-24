@@ -57,6 +57,7 @@ module Router
         end
         
         def route(context)
+            # TODO: something better than O(n)
             routed = @routes.reduce(false) do |matched, route|
                 matched || route.checkPathAndHandle(context)
             end
