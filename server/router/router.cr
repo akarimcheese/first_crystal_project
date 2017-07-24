@@ -4,13 +4,13 @@ module Router
     class Route
         @path : String | Regex
         @verbs : Array(String)
-        #@handler
+        @handler : Proc(HTTP::Server::Context, Nil)
         @pathMatcher : Proc(HTTP::Server::Context, Bool)
         
         def initialize(path, verbs, handler) 
             @path = path
             @verbs = verbs
-            #@handler = ->handler
+            @handler = handler
             
             if path.is_a?(String)
                 @pathMatcher = ->(context : HTTP::Server::Context) {
@@ -36,9 +36,7 @@ module Router
         end
         
         def handle(context)
-            #@handler.call(context)
-            context.response.content_type = "text/html"
-            context.response.print "ok"
+            @handler.call(context)
         end
         
         def checkPathAndHandle(context)
@@ -54,12 +52,8 @@ module Router
     class Router
         @routes : Array(Route)
         
-        def initialize 
-            @routes = [
-                Route.new("/", ["GET"], ""),
-                Route.new("/about", ["GET"], ""),
-                Route.new(/^\/api\/?/, ["GET"], "")
-            ]
+        def initialize(routes)
+            @routes = routes
         end
         
         def route(context)
@@ -69,6 +63,7 @@ module Router
             
             if !routed
                 context.response.content_type = "text/html"
+                context.response.status_code = 404
                 context.response.print "404"
             end
         end

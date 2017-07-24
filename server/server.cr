@@ -1,8 +1,13 @@
 require "http/server"
 require "./router/router"
 
+require "./controllers/indexController"
+
 module Server
-    router = Router::Router.new
+    routes = [
+        IndexController.route
+    ]
+    router = Router::Router.new(routes)
 
     server = HTTP::Server.new("0.0.0.0", 8080) do |context|
         router.route(context)
